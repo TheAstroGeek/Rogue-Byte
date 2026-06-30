@@ -1,0 +1,306 @@
+#include <LiquidCrystal.h>
+
+#define MAX_ENTITIES 20  
+
+struct Entity {
+  int col;
+  int row;
+  char type;     
+};
+
+
+Entity entities[MAX_ENTITIES];
+int entityCount = 0;
+
+bool InMenu = false;
+
+const int right = 8;
+const int left = 7;
+const int up = 9;
+
+int right_state; // These variables check the state of the right button
+int prevRightstate;
+
+int left_state; // These variables check the state of the left button
+int prevLeftstate;
+
+int up_state; // These variables check the state of the up button
+int prevUpstate;
+
+int playerRowpos = 0; // These variables constanly store the player's (cursor) current position
+int playerColpos = 0;
+
+int level = 1;
+long randTileUp; // variable to store 
+long randTileAcross;
+long randEntity;
+
+const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+
+int playerPos = (0, 0);
+
+void setup() {
+      
+  randomSeed(analogRead(0));
+  
+  pinMode(right, INPUT);
+  pinMode(left, INPUT);
+  pinMode(up, INPUT);
+ 
+  lcd.begin(16, 2);
+  
+  Serial.begin(9600);
+  
+  lcd.setCursor(0, 0);
+}
+
+void loop() {
+  
+  int right_state = digitalRead(right);
+  int left_state = digitalRead(left);
+  int up_state = digitalRead(up);
+  
+  lcd.blink();
+  
+  if (left_state != prevLeftstate){
+    
+    if (left_state == HIGH && prevLeftstate == LOW){
+      
+      Serial.print("Left pushed");
+      
+      LeftCursorPos();
+    }
+  }
+    
+  prevLeftstate = left_state;
+   
+  if (right_state != prevRightstate){
+      
+      if(right_state == HIGH && prevRightstate == LOW){
+        
+        Serial.print("Right pushed");
+        
+        RightCursorPos();
+        
+    }
+  }
+  
+  prevRightstate = right_state;
+  
+  if (up_state != prevUpstate){
+    
+    if(up_state == HIGH && prevUpstate == LOW) {
+      
+      Serial.print("Up pushed");
+      
+      UpCursorPos();
+      
+    }
+  }
+ 
+  prevUpstate = up_state;
+  
+}
+
+void EnemyMenu() {
+  
+  lcd.clear();
+  InMenu = true;
+  
+  lcd.setCursor(2, 0);
+  lcd.print("Range");
+  
+  lcd.setCursor(9, 0);
+  lcd.print("Melee");
+  
+  lcd.setCursor(5, 1);
+  lcd.print("Sheild");
+  
+  lcd.home();
+  
+}
+
+void TreasureMenu() {
+  
+  lcd.clear();
+  InMenu = true;
+  
+  lcd.home();
+  lcd.print("You got a dagger");
+  lcd.setCursor(0, 1);
+  lcd.print("5+ Melee");
+  
+}
+  
+  
+  
+  
+
+void roomGen() {
+  Serial.print("Generating level ");
+  Serial.println(level);
+
+  lcd.clear();
+  entityCount = 0;                    // Reset for new room
+
+  for (int i = 0; i < level; i++) {   // Fixed: < level, not <=
+    int row = random(0, 2);
+    int col = random(2, 17);
+    int type = random(1, 4);
+
+    // Store the entity
+    if (entityCount < MAX_ENTITIES) {
+      entities[entityCount].col = col;
+      entities[entityCount].row = row;
+      entities[entityCount].type = (type == 1 ? 'T' : type == 2 ? 'E' : 'B');
+      entityCount++;
+    }
+
+    lcd.setCursor(col, row);
+    lcd.print(entities[entityCount-1].type);
+  }
+
+  // Draw cursor
+  lcd.setCursor(playerColpos, playerRowpos);
+  level++;
+}
+
+
+int checkCollision(int col, int row) {
+  
+  for (int i = 0; i < entityCount; i++) {
+    
+    if (entities[i].col == col && entities[i].row == row) {
+      
+      switch (entities[i].type) {
+        
+        case 'E':
+          return 1;
+          break;
+        
+        case 'B':
+          return 1;
+          break;
+        
+        case 'T':
+          return 2;
+          break;
+      }  
+      
+    }
+    
+  }
+  
+  return 0;
+  
+}
+  
+
+
+
+void LeftCursorPos(){
+  
+  playerColpos--;
+ 
+  if (playerColpos <= -1) {
+    
+    playerColpos++;
+    
+  }
+  
+  lcd.setCursor(playerColpos, playerRowpos);
+  
+  switch (checkCollision(playerColpos, playerRowpos)) {
+    
+    case 1:
+    EnemyMenu();
+    break;
+    
+    case 2:
+    TreasureMenu();
+    break;
+    
+    case 0:
+    break;
+  }
+}
+
+
+
+void RightCursorPos() {
+  playerColpos++;
+
+  if (playerColpos >= 16) {
+    playerColpos = 0;
+    roomGen();           // New room when wrapping
+    return;
+  }
+
+  lcd.setCursor(playerColpos, playerRowpos);
+
+  switch (checkCollision(playerColpos, playerRowpos)) {
+    
+    case 1:
+    EnemyMenu();
+    break;
+    
+    case 2:
+    TreasureMenu();
+    break;
+    
+    case 0:
+    break;
+  }
+}
+
+
+void UpCursorPos() {
+  
+  playerRowpos++;
+  
+  if (playerRowpos >= 2) {
+    
+    playerRowpos = 0;
+   
+  }
+  
+  lcd.setCursor(playerColpos, playerRowpos);
+  
+  switch (checkCollision(playerColpos, playerRowpos)) {
+    
+    case 1:
+    EnemyMenu();
+    break;
+    
+    case 2:
+    TreasureMenu();
+    break;
+    
+    case 0:
+    break;
+  }
+ 
+}
+  
+  
+  
+  
+  
+  
+   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
