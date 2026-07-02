@@ -11,6 +11,15 @@ struct Entity {
 int cursorColpos = 0;
 int cursorRowpos = 0;
 
+const int RangeRow = 0;
+const int RangeCol = 2;
+
+const int MeleeRow = 0;
+const int MeleeCol = 9;
+
+const int SheildRow = 1;
+const int SheildCol = 5;
+
 
 Entity entities[MAX_ENTITIES];
 int entityCount = 0;
@@ -20,6 +29,7 @@ bool InMenu = false;
 const int right = 8;
 const int left = 7;
 const int up = 9;
+const int select = 6;
 
 int right_state; // These variables check the state of the right button
 int prevRightstate;
@@ -29,6 +39,9 @@ int prevLeftstate;
 
 int up_state; // These variables check the state of the up button
 int prevUpstate;
+
+int select_state;
+int prevSelectstate;
 
 int playerRowpos = 0; // These variables constanly store the player's (cursor) current position
 int playerColpos = 0;
@@ -51,6 +64,7 @@ void setup() {
   pinMode(right, INPUT);
   pinMode(left, INPUT);
   pinMode(up, INPUT);
+  pinMode(select, INPUT);
  
   lcd.begin(16, 2);
   
@@ -64,6 +78,7 @@ void loop() {
   int right_state = digitalRead(right);
   int left_state = digitalRead(left);
   int up_state = digitalRead(up);
+  int select_state = digitalRead(select);
   
   lcd.blink();
   
@@ -71,35 +86,49 @@ void loop() {
     
     if (left_state != prevLeftstate){
     
-    if (left_state == HIGH && prevLeftstate == LOW){
-      
-      LeftCursorPos();
-    }
-  }
+        if (left_state == HIGH && prevLeftstate == LOW){
+
+          LeftCursorPos();
+        }
+      }
+
+      prevLeftstate = left_state;
+
+      if (right_state != prevRightstate){
+
+          if(right_state == HIGH && prevRightstate == LOW){
+
+            RightCursorPos();
+
+        }
+      }
+
+      prevRightstate = right_state;
+
+      if (up_state != prevUpstate){
+
+        if(up_state == HIGH && prevUpstate == LOW) {
+
+          UpCursorPos();
+
+        }
+      }
+
+      prevUpstate = up_state;
     
-  prevLeftstate = left_state;
-   
-  if (right_state != prevRightstate){
-      
-      if(right_state == HIGH && prevRightstate == LOW){
-        
-        RightCursorPos();
-        
-    }
-  }
-  
-  prevRightstate = right_state;
-  
-  if (up_state != prevUpstate){
     
-    if(up_state == HIGH && prevUpstate == LOW) {
+    if (select_state != prevSelectstate) {
       
-      UpCursorPos();
+      if (select_state == HIGH && prevSelectstate == LOW) {
+        
+        RedrawScreen();
+        
+      }
       
     }
-  }
- 
-  prevUpstate = up_state;
+    
+    prevSelectstate = select_state;
+    
     
   } else {
     
@@ -152,13 +181,13 @@ void EnemyMenu() {
   lcd.clear();
   InMenu = true;
   
-  lcd.setCursor(2, 0);
+  lcd.setCursor(RangeCol, RangeRow);
   lcd.print("Range");
   
-  lcd.setCursor(9, 0);
+  lcd.setCursor(MeleeCol, MeleeRow);
   lcd.print("Melee");
   
-  lcd.setCursor(5, 1);
+  lcd.setCursor(SheildCol, SheildRow);
   lcd.print("Sheild");
   
   lcd.home();
@@ -176,8 +205,22 @@ void TreasureMenu() {
   lcd.print("5+ Melee");
   
 }
+
+void RedrawScreen() {
   
+  lcd.clear();
+  InMenu = false;
   
+  for (int i = 0; i < entityCount; i++) {
+    
+    lcd.setCursor(entities[i].col, entities[i].row);
+    lcd.print(entities[i].type);
+    
+  }
+  
+  lcd.setCursor(playerColpos, playerRowpos);
+  
+}
   
   
 
@@ -370,14 +413,6 @@ void UpPlayerPos() {
   }
  
 }
-  
-  
-  
-  
-  
-  
-  
-  
   
   
   
