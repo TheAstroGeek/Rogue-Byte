@@ -1,22 +1,50 @@
 #include <LiquidCrystal.h>
 
-#define MAX_ENTITIES 20  
+#define MAX_ENEMIES 20  
 
-struct Entity {
+#define MAX_TREASURE 20
+
+struct Enemy {
   int col;
   int row;
-  char type;     
+  char type;   
+  int range;
+  int melee;
+  int shield;
 };
 
+struct Treasure {
+  int col;	
+  int row;
+  int loot;
+  int tier;
+};
 
-Entity entities[MAX_ENTITIES];
-int entityCount = 0;
+int cursorColpos = 0;
+int cursorRowpos = 0;
+
+const int RangeRow = 0;
+const int RangeCol = 2;
+
+const int MeleeRow = 0;
+const int MeleeCol = 9;
+
+const int SheildRow = 1;
+const int SheildCol = 5;
+
+
+Enemy enemies[MAX_ENEMIES];
+int enemyCount = 0;
+
+Treasure treasures[MAX_TREASURE];
+int treasureCount = 0;
 
 bool InMenu = false;
 
 const int right = 8;
 const int left = 7;
 const int up = 9;
+const int select = 6;
 
 int right_state; // These variables check the state of the right button
 int prevRightstate;
@@ -26,6 +54,9 @@ int prevLeftstate;
 
 int up_state; // These variables check the state of the up button
 int prevUpstate;
+
+int select_state;
+int prevSelectstate;
 
 int playerRowpos = 0; // These variables constanly store the player's (cursor) current position
 int playerColpos = 0;
@@ -48,6 +79,7 @@ void setup() {
   pinMode(right, INPUT);
   pinMode(left, INPUT);
   pinMode(up, INPUT);
+  pinMode(select, INPUT);
  
   lcd.begin(16, 2);
   
@@ -61,8 +93,61 @@ void loop() {
   int right_state = digitalRead(right);
   int left_state = digitalRead(left);
   int up_state = digitalRead(up);
+  int select_state = digitalRead(select);
   
   lcd.blink();
+  
+  if (InMenu) {
+    
+    if (left_state != prevLeftstate){
+    
+        if (left_state == HIGH && prevLeftstate == LOW){
+
+          LeftCursorPos();
+        }
+      }
+
+      prevLeftstate = left_state;
+
+      if (right_state != prevRightstate){
+
+          if(right_state == HIGH && prevRightstate == LOW){
+
+            RightCursorPos();
+
+        }
+      }
+
+      prevRightstate = right_state;
+
+      if (up_state != prevUpstate){
+
+        if(up_state == HIGH && prevUpstate == LOW) {
+
+          UpCursorPos();
+
+        }
+      }
+
+      prevUpstate = up_state;
+    
+    
+    if (select_state != prevSelectstate) {
+      
+      if (select_state == HIGH && prevSelectstate == LOW) {
+        
+        RedrawScreen();
+        
+      }
+      
+    }
+    
+    prevSelectstate = select_state;
+    
+    
+  } else {
+    
+    
   
   if (left_state != prevLeftstate){
     
@@ -70,7 +155,7 @@ void loop() {
       
       Serial.print("Left pushed");
       
-      LeftCursorPos();
+      LeftPlayerPos();
     }
   }
     
@@ -82,7 +167,7 @@ void loop() {
         
         Serial.print("Right pushed");
         
-        RightCursorPos();
+        RightPlayerPos();
         
     }
   }
@@ -95,12 +180,14 @@ void loop() {
       
       Serial.print("Up pushed");
       
-      UpCursorPos();
+      UpPlayerPos();
       
     }
   }
  
   prevUpstate = up_state;
+    
+  }
   
 }
 
@@ -109,13 +196,13 @@ void EnemyMenu() {
   lcd.clear();
   InMenu = true;
   
-  lcd.setCursor(2, 0);
+  lcd.setCursor(RangeCol, RangeRow);
   lcd.print("Range");
   
-  lcd.setCursor(9, 0);
+  lcd.setCursor(MeleeCol, MeleeRow);
   lcd.print("Melee");
   
-  lcd.setCursor(5, 1);
+  lcd.setCursor(SheildCol, SheildRow);
   lcd.print("Sheild");
   
   lcd.home();
@@ -131,10 +218,32 @@ void TreasureMenu() {
   lcd.print("You got a dagger");
   lcd.setCursor(0, 1);
   lcd.print("5+ Melee");
+  lcd.home();
   
 }
+
+void RedrawScreen() {
   
+  lcd.clear();
+  InMenu = false;
   
+  for (int i = 0; i < enemyCount; i++) {
+    
+    lcd.setCursor(enemies[i].col, enemies[i].row);
+    lcd.print("E");
+    
+  }
+  
+  for (int i = 0; i < treasureCount; i++) {
+    
+    lcd.setCursor(treasure[i].col, treasure[i].row);
+    lcd.print("T");
+    
+  }
+  
+  lcd.setCursor(playerColpos, playerRowpos);
+  
+}
   
   
 
@@ -143,23 +252,63 @@ void roomGen() {
   Serial.println(level);
 
   lcd.clear();
-  entityCount = 0;                    // Reset for new room
+  enemyCount = 0;
+  treasureCount = 0;
 
-  for (int i = 0; i < level; i++) {   // Fixed: < level, not <=
-    int row = random(0, 2);
-    int col = random(2, 17);
-    int type = random(1, 4);
+  for (int i = 0; i < level; i++) { 
+    
+    int entity = random(1, 3);
+    
+    switch (entity) {
+      
+      case 1:
+        int row = random(0, 2);
+        int col = random(2, 17);
+        int type = random(1, 4);
+        int ranScale = random(1, 6);
+        int melScale = random(1, 6);
+        int sheScale = random(1, 6);
+      
+        int range = ranScale + level;
+        int melee = melScale + level;
+        int sheild = sheScale + level;
 
-    // Store the entity
-    if (entityCount < MAX_ENTITIES) {
-      entities[entityCount].col = col;
-      entities[entityCount].row = row;
-      entities[entityCount].type = (type == 1 ? 'T' : type == 2 ? 'E' : 'B');
-      entityCount++;
-    }
+        if (enemyCount < MAX_ENEMIES) {
+          enemies[enemyCount].col = col;
+          enemies[enemyCount].row = row;
+          enemies[enemyCount].type = (type == 1 ? 'T' : type == 2 ? 'E' : 'B');
+          enemies[enemyCount].range = range;
+          enemies[enemyCount].melee = melee;
+          enemies[enemyCount].sheild = sheild;
+          enemyCount++;
+        }
 
-    lcd.setCursor(col, row);
-    lcd.print(entities[entityCount-1].type);
+        lcd.setCursor(col, row);
+        lcd.print("E");
+        break;
+      
+      
+      case 2:
+        int row = random(0, 2);
+        int col = random(2, 17);
+        int loot = random(1, 4);
+        int tierScale = random(1, 6);
+      
+        int tier = tierScale + level;
+      
+        if (treasureCount < MAX_TREASURE) {
+          treasure[treasureCount].col = col;
+          treasure[treasureCount].row = row;
+          treasure[treasureCount].loot = loot;
+          treasure[treasureCount].tier = tier;
+          treasureCount++
+        }
+      
+        lcd.setCursor(col, row);
+        lcd.print("T");
+        break;
+      
+      }
   }
 
   // Draw cursor
@@ -196,11 +345,55 @@ int checkCollision(int col, int row) {
   return 0;
   
 }
-  
 
 
 
 void LeftCursorPos(){
+  
+  cursorColpos--;
+ 
+  if (cursorColpos <= -1) {
+    
+    cursorColpos++;
+    
+  }
+  
+  lcd.setCursor(cursorColpos, cursorRowpos);
+  
+}
+
+void RightCursorPos() {
+  cursorColpos++;
+
+  if (cursorColpos >= 16) {
+    
+   cursorColpos = 0;
+    
+  }
+
+  lcd.setCursor(cursorColpos, cursorRowpos);
+  
+}
+
+void UpCursorPos() {
+  
+  cursorRowpos++;
+  
+  if (cursorRowpos >= 2) {
+    
+    cursorRowpos = 0;
+   
+  }
+  
+  lcd.setCursor(cursorColpos, cursorRowpos);
+  
+}
+  
+  
+
+
+
+void LeftPlayerPos(){
   
   playerColpos--;
  
@@ -229,12 +422,12 @@ void LeftCursorPos(){
 
 
 
-void RightCursorPos() {
+void RightPlayerPos() {
   playerColpos++;
 
   if (playerColpos >= 16) {
     playerColpos = 0;
-    roomGen();           // New room when wrapping
+    roomGen();          
     return;
   }
 
@@ -256,7 +449,7 @@ void RightCursorPos() {
 }
 
 
-void UpCursorPos() {
+void UpPlayerPos() {
   
   playerRowpos++;
   
@@ -283,24 +476,4 @@ void UpCursorPos() {
   }
  
 }
-  
-  
-  
-  
-  
-  
-   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
