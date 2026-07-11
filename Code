@@ -236,7 +236,7 @@ void RedrawScreen() {
   
   for (int i = 0; i < treasureCount; i++) {
     
-    lcd.setCursor(treasure[i].col, treasure[i].row);
+    lcd.setCursor(treasures[i].col, treasures[i].row);
     lcd.print("T");
     
   }
@@ -259,11 +259,10 @@ void roomGen() {
     
     int entity = random(1, 3);
     
-    switch (entity) {
+    if (entity == 1) {
       
-      case 1:
-        int row = random(0, 2);
-        int col = random(2, 17);
+        int enemyRow = random(0, 2);
+        int enemyCol = random(2, 17);
         int type = random(1, 4);
         int ranScale = random(1, 6);
         int melScale = random(1, 6);
@@ -271,44 +270,45 @@ void roomGen() {
       
         int range = ranScale + level;
         int melee = melScale + level;
-        int sheild = sheScale + level;
+        int shield = sheScale + level;
 
         if (enemyCount < MAX_ENEMIES) {
-          enemies[enemyCount].col = col;
-          enemies[enemyCount].row = row;
+          enemies[enemyCount].col = enemyCol;
+          enemies[enemyCount].row = enemyRow;
           enemies[enemyCount].type = (type == 1 ? 'T' : type == 2 ? 'E' : 'B');
           enemies[enemyCount].range = range;
           enemies[enemyCount].melee = melee;
-          enemies[enemyCount].sheild = sheild;
+          enemies[enemyCount].shield = shield;
           enemyCount++;
         }
 
-        lcd.setCursor(col, row);
+        lcd.setCursor(enemyCol, enemyRow);
         lcd.print("E");
-        break;
+        
       
-      
-      case 2:
-        int row = random(0, 2);
-        int col = random(2, 17);
+    } else {
+  
+        int treasureRow = random(0, 2);
+        int treasureCol = random(2, 17);
         int loot = random(1, 4);
         int tierScale = random(1, 6);
       
         int tier = tierScale + level;
       
         if (treasureCount < MAX_TREASURE) {
-          treasure[treasureCount].col = col;
-          treasure[treasureCount].row = row;
-          treasure[treasureCount].loot = loot;
-          treasure[treasureCount].tier = tier;
-          treasureCount++
+          treasures[treasureCount].col = treasureCol;
+          treasures[treasureCount].row = treasureRow;
+          treasures[treasureCount].loot = loot;
+          treasures[treasureCount].tier = tier;
+          treasureCount++;
         }
       
-        lcd.setCursor(col, row);
+        lcd.setCursor(treasureCol, treasureRow);
         lcd.print("T");
-        break;
+        
+    }
       
-      }
+   
   }
 
   // Draw cursor
@@ -319,24 +319,21 @@ void roomGen() {
 
 int checkCollision(int col, int row) {
   
-  for (int i = 0; i < entityCount; i++) {
+  for (int i = 0; i < enemyCount; i++) {
     
-    if (entities[i].col == col && entities[i].row == row) {
+    if (enemies[i].col == col && enemies[i].row == row) {
       
-      switch (entities[i].type) {
+      return 1;
+      
+    }
+    
+  for (int i = 0; i < treasureCount; i++) {
+      
+    if (treasures[i].col == col && treasures[i].row == row) {
+      
+      return 2;
         
-        case 'E':
-          return 1;
-          break;
-        
-        case 'B':
-          return 1;
-          break;
-        
-        case 'T':
-          return 2;
-          break;
-      }  
+      }
       
     }
     
@@ -476,4 +473,3 @@ void UpPlayerPos() {
   }
  
 }
-  
