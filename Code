@@ -1,8 +1,14 @@
 #include <LiquidCrystal.h>
 
+#define MAX_ENTITIES 30
+
 #define MAX_ENEMIES 20  
 
 #define MAX_TREASURE 20
+
+int playerMel = 5;
+int playerRan = 5;
+int playerShe = 5;
 
 struct Enemy {
   int col;
@@ -38,6 +44,8 @@ int enemyCount = 0;
 
 Treasure treasures[MAX_TREASURE];
 int treasureCount = 0;
+
+int entityCount = 0;
 
 bool InMenu = false;
 
@@ -209,17 +217,68 @@ void EnemyMenu() {
   
 }
 
+
+
 void TreasureMenu() {
   
   lcd.clear();
   InMenu = true;
-  
-  lcd.home();
-  lcd.print("You got a dagger");
-  lcd.setCursor(0, 1);
-  lcd.print("5+ Melee");
   lcd.home();
   
+  for (int i = 0; i < treasureCount; i++) {
+    
+    if (treasures[i].col == playerColpos && treasures[i].row == playerRowpos) {
+      
+      switch (treasures[i].loot) {
+        
+        case 1: // Range
+        
+        lcd.print("You got an ARROW");
+        
+        lcd.setCursor(0, 1);
+        
+        lcd.print(treasures[i].tier);
+          
+        lcd.print("+ RANGE");
+        
+        playerRan = playerRan + treasures[i].tier;
+        
+        break;
+        
+        case 2: // Melee
+        
+        lcd.print("You got a DAGGER");
+        
+        lcd.setCursor(0, 1);
+        
+        lcd.print(treasures[i].tier);
+          
+        lcd.print("+ MELEE");
+        
+        playerMel = playerMel + treasures[i].tier;
+        
+        break;
+        
+        case 3: // Shield
+        
+        lcd.print("You found ARMOR");
+        
+        lcd.setCursor(0, 1);
+        
+        lcd.print(treasures[i].tier);
+          
+        lcd.print("+ SHIELD");
+        
+        playerShe = playerShe + treasures[i].tier;
+        
+        break;
+  
+      }
+  
+    }
+    
+  }
+ 
 }
 
 void RedrawScreen() {
@@ -254,6 +313,7 @@ void roomGen() {
   lcd.clear();
   enemyCount = 0;
   treasureCount = 0;
+  entityCount = 0;
 
   for (int i = 0; i < level; i++) { 
     
@@ -280,6 +340,7 @@ void roomGen() {
           enemies[enemyCount].melee = melee;
           enemies[enemyCount].shield = shield;
           enemyCount++;
+          entityCount++;
         }
 
         lcd.setCursor(enemyCol, enemyRow);
@@ -293,7 +354,7 @@ void roomGen() {
         int loot = random(1, 4);
         int tierScale = random(1, 6);
       
-        int tier = tierScale + level;
+        int tier = tierScale;
       
         if (treasureCount < MAX_TREASURE) {
           treasures[treasureCount].col = treasureCol;
@@ -301,6 +362,7 @@ void roomGen() {
           treasures[treasureCount].loot = loot;
           treasures[treasureCount].tier = tier;
           treasureCount++;
+          entityCount++;
         }
       
         lcd.setCursor(treasureCol, treasureRow);
@@ -319,7 +381,7 @@ void roomGen() {
 
 int checkCollision(int col, int row) {
   
-  for (int i = 0; i < enemyCount; i++) {
+  for (int i = 0; i < entityCount; i++) {
     
     if (enemies[i].col == col && enemies[i].row == row) {
       
@@ -327,15 +389,12 @@ int checkCollision(int col, int row) {
       
     }
     
-  for (int i = 0; i < treasureCount; i++) {
-      
     if (treasures[i].col == col && treasures[i].row == row) {
       
       return 2;
         
       }
       
-    }
     
   }
   
@@ -473,3 +532,4 @@ void UpPlayerPos() {
   }
  
 }
+  
